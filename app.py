@@ -8,6 +8,17 @@ from flask import Flask, request, Response
 
 app = Flask(__name__)
 
+# ---------------------------------------------------------
+# ★ 新增：ACME 证书验证路由（ClawCloud 必须）
+# ---------------------------------------------------------
+@app.route('/.well-known/acme-challenge/<path:filename>')
+def acme_challenge(filename):
+    return filename, 200
+
+
+# ---------------------------------------------------------
+# 原有功能：国旗映射
+# ---------------------------------------------------------
 FLAG_MAP = {
     "JP": "🇯🇵", "US": "🇺🇸", "HK": "🇭🇰", "SG": "🇸🇬",
     "TW": "🇹🇼", "KR": "🇰🇷", "DE": "🇩🇪", "GB": "🇬🇧",
@@ -205,13 +216,11 @@ def generate_clash_yaml(nodes):
 
 @app.route("/sub")
 def sub():
-    # 1. 从 URL 参数读取
     urls = request.args.getlist("url")
     urls_param = request.args.get("urls", "").strip()
     if urls_param:
         urls.extend([u.strip() for u in urls_param.split(",") if u.strip()])
 
-    # 2. 从 subs.txt 读取
     local_subs = load_local_subs()
     urls.extend(local_subs)
 
@@ -234,7 +243,6 @@ def sub():
     if not all_nodes:
         return "未解析到任何节点", 400
 
-    # 国旗 + 测速
     for n in all_nodes:
         flag = get_flag(n["server"])
         latency = tcp_latency(n["server"], n["port"])
@@ -247,6 +255,11 @@ def sub():
 
     yaml_text = generate_clash_yaml(all_nodes)
     return Response(yaml_text, mimetype="text/yaml")
+
+
+@app.route("/")
+def index():
+    return "ClawCloud Subscription Server Running", 200
 
 
 if __name__ == "__main__":
